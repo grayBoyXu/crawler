@@ -4,12 +4,12 @@ const { createObjectCsvWriter } = require('csv-writer');
 const fs = require('fs');
 const path = require('path');
 // 155167
-const recordsPerFile = 2;
-const maxPage = 80000;
+const recordsPerFile = 10;
+const maxPage = 120000;
 let allRecords = [];
 let pageNum
 let startNum
-const csvFilePath = path.join(__dirname, '汽车票订单70000_80000.csv');
+const csvFilePath = path.join(__dirname, '汽车票订单110000_120000.csv');
 const progressFilePath = path.join(__dirname, 'data.json');
 let csvWriter
 async function waitFor(ms) {
