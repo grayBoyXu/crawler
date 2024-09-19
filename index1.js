@@ -5,11 +5,11 @@ const fs = require('fs');
 const path = require('path');
 // 155167
 const recordsPerFile = 10;
-const maxPage = 90000;
+const maxPage = 130000;
 let allRecords = [];
 let pageNum
 let startNum
-const csvFilePath = path.join(__dirname, '汽车票订单80000_90000.csv');
+const csvFilePath = path.join(__dirname, '汽车票订单120000_130000.csv');
 const progressFilePath = path.join(__dirname, 'data.json');
 let csvWriter
 async function waitFor(ms) {
