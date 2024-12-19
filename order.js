@@ -3,13 +3,13 @@ const puppeteer = require('puppeteer');
 const { createObjectCsvWriter } = require('csv-writer');
 const fs = require('fs');
 const path = require('path');
-// 155167
+
 const recordsPerFile = 10;
-const maxPage = 155167;
+const maxPage = 199;
 let allRecords = [];
 let pageNum
 let startNum
-const csvFilePath = path.join(__dirname, '汽车票订单150000_155167csv');
+const csvFilePath = path.join(__dirname, '退票管理2024-12(01-18).csv');
 const progressFilePath = path.join(__dirname, 'data.json');
 let csvWriter
 async function waitFor(ms) {
@@ -18,24 +18,49 @@ async function waitFor(ms) {
 function updateProgress(num) {
     const data = fs.readFileSync(progressFilePath) || '{}';
     const progress = JSON.parse(data);
-    progress.index4Num = num;
+    progress.orderNum = num;
     fs.writeFileSync(progressFilePath, JSON.stringify(progress, null, 2));
 }
 // 获取已记录的进度
 function getProgress() {
     if (fs.existsSync(progressFilePath)) {
         const data = fs.readFileSync(progressFilePath);
-        return JSON.parse(data).index4Num || 1;
+        return JSON.parse(data).orderNum || 1;
     }
     return 1;
 }
+const saveData = async () => {
+    if (csvWriter) {
+        await csvWriter.writeRecords(allRecords);
+    }
+};
 
+const handleExit = async () => {
+    try {
+        await saveData();
+        console.log('程序已退出');
+
+        updateProgress(pageNum)
+        if (browser) {
+            await browser.close();
+        }
+        process.exit();
+    } catch (error) {
+        console.error('Error during exit:', error.message);
+    }
+
+};
+
+// 处理不同的终止信号
+process.on('SIGINT', handleExit);
+process.on('SIGTERM', handleExit);
 async function processPage(page, pageNum) {
-    const url = `http://ynjkq.qudache.cn/Admin/Order/index/create_time_1/2022-09-01+00%3A00%3A00/create_time_2/2024-09-01+00%3A00%3A00/p/${pageNum}.html`;
+    const url = `http://ynjkq.qudache.cn/Admin/TicketRefund/index/create_time_1/2024-12-01+00%3A00%3A00/create_time_2/2024-12-18+23%3A59%3A59/p/${pageNum}.html`;
+    // console.log(`正在抓取 ${pageNum}`);
+
     try {
         await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
         await page.waitForSelector('table', { timeout: 60000 });
-
         const tableData = await page.evaluate(() => {
             const headers = Array.from(document.querySelectorAll('table thead th')).map(th => th.textContent.trim());
             const rows = Array.from(document.querySelectorAll('table tbody tr')).map(tr => {
@@ -60,13 +85,12 @@ async function processPage(page, pageNum) {
         });
 
         allRecords.push(...records);
-        console.log(`已抓取 ${pageNum}`);
-        if (pageNum % recordsPerFile === 1) {
+        if (pageNum % recordsPerFile === 0 || pageNum == maxPage) {
             if (csvWriter) {
                 await csvWriter.writeRecords(allRecords);
             }
-            console.log(`已写入文件 ${pageNum}`);
             await waitFor(10);
+            console.log(`已写入文件 ${pageNum}`);
             allRecords = [];
         }
     } catch (error) {
@@ -82,7 +106,7 @@ async function processPage(page, pageNum) {
 }
 
 (async () => {
-    const browser = await puppeteer.launch();
+    const browser = await puppeteer.launch({ headless: true });
     const page = await browser.newPage();
 
     try {
@@ -100,6 +124,7 @@ async function processPage(page, pageNum) {
             await csvWriter.writeRecords(allRecords);
         }
     } finally {
+        updateProgress(pageNum)
         await browser.close();
     }
 })();
